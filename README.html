@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>자동 미로 탈출 게임</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      background-color: #f0f0f0;
+      margin-top: 30px;
+    }
+
+    canvas {
+      border: 2px solid #333;
+      background-color: white;
+      display: block;
+      margin: 0 auto;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    #message {
+      margin-top: 20px;
+      font-size: 1.2em;
+      color: green;
+    }
+  </style>
+</head>
+<body>
+  <h1>미로 탈출 게임</h1>
+  <canvas id="gameCanvas"></canvas>
+  <p id="message"></p>
+  <button onclick="generateMaze(); drawMaze(); document.getElementById('message').textContent = '';">🔁 새 미로</button>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const width = 25;  // 가로 타일 개수 (홀수 권장)
+    const height = 25; // 세로 타일 개수 (홀수 권장)
+    const tileSize = 20;
+
+    canvas.width = width * tileSize;
+    canvas.height = height * tileSize;
+
+    let maze = [];
+    let player = { x: 1, y: 1 };
+
+    function generateMaze() {
+      // 1. 모든 칸을 벽으로 초기화
+      maze = Array.from({ length: height }, () => Array(width).fill(1));
+
+      // 2. DFS로 경로 만들기
+      function carve(x, y) {
+        const directions = [
+          [0, -2], [0, 2], [-2, 0], [2, 0]
+        ].sort(() => Math.random() - 0.5); // 방향 랜덤 섞기
+
+        for (const [dx, dy] of directions) {
+          const nx = x + dx, ny = y + dy;
+          if (
+            ny > 0 && ny < height - 1 &&
+            nx > 0 && nx < width - 1 &&
+            maze[ny][nx] === 1
+          ) {
+            maze[ny - dy / 2][nx - dx / 2] = 0; // 사이 벽 뚫기
+            maze[ny][nx] = 0;
+            carve(nx, ny);
+          }
+        }
+      }
+
+      maze[1][1] = 0;
+      carve(1, 1);
+      maze[height - 2][width - 2] = 2; // 출구 위치
+      player = { x: 1, y: 1 };
+    }
+
+    function drawMaze() {
+      for (let y = 0; y < maze.length; y++) {
+        for (let x = 0; x < maze[y].length; x++) {
+          if (maze[y][x] === 1) ctx.fillStyle = "#444";       // 벽
+          else if (maze[y][x] === 2) ctx.fillStyle = "#4CAF50"; // 출구
+          else ctx.fillStyle = "#eee";                         // 길
+          ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+        }
+      }
+      // 플레이어
+      ctx.fillStyle = "#2196F3";
+      ctx.fillRect(player.x * tileSize, player.y * tileSize, tileSize, tileSize);
+    }
+
+    function canMove(x, y) {
+      return maze[y] && maze[y][x] !== undefined && maze[y][x] !== 1;
+    }
+
+    function movePlayer(dx, dy) {
+      const newX = player.x + dx;
+      const newY = player.y + dy;
+      if (canMove(newX, newY)) {
+        player.x = newX;
+        player.y = newY;
+        if (maze[newY][newX] === 2) {
+          document.getElementById("message").textContent = "🎉 탈출 성공!";
+        }
+      }
+      drawMaze();
+    }
+
+    document.addEventListener("keydown", (e) => {
+      switch (e.key) {
+        case "ArrowUp": movePlayer(0, -1); break;
+        case "ArrowDown": movePlayer(0, 1); break;
+        case "ArrowLeft": movePlayer(-1, 0); break;
+        case "ArrowRight": movePlayer(1, 0); break;
+      }
+    });
+
+    generateMaze();
+    drawMaze();
+  </script>
+</body>
+</html>
